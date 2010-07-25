@@ -167,13 +167,32 @@ class Utilities
 		return $data;
 	}
 
-    public function validateData($data, $key)
+    public function sanitizeData($data, $allowed = '')
+	{
+    	$returnString = '';
+    	
+    	if (isset($data))
+    	{
+    		if (is_array($allowed))
+    		{
+				$returnString = strip_tags($data, '<' . implode('><', $allowed) . '>');
+			}
+			else
+			{
+				$returnString = strip_tags($data, $allowed);
+			}
+    	}
+    	
+    	return $returnString;	
+	}
+	
+    public function validateData($data, $key, $allowed = '')
     {
     	$returnString = '';
     	
     	if (isset($data[$key]))
     	{
-    		$returnString = trim(stripslashes($data[$key]));
+    		$returnString = trim(stripslashes($this->sanitizeData($data[$key], $allowed)));
     	}
     	
     	return $returnString;
@@ -193,7 +212,118 @@ class Utilities
 
 		return preg_replace('/\s{2,}/', ' ', $r);
 	}
-    
+
+	public function displayCreateDateString($date)
+	{
+		$dateString = date('d M Y', strtotime($date));
+		
+		return $dateString;
+	}
+
+	public function date_diff($start, $end="NOW")
+	{
+		$timeshift = '0 sec';
+        $sdate = strtotime($start);
+        $edate = strtotime($end);
+
+        $time = $edate - $sdate;
+
+        if ($time>=0 && $time<=59)
+        {
+            // Seconds
+            $timeshift = $time.' sec ';
+        }
+        elseif ($time>=60 && $time<=3599)
+        {
+            // Minutes + Seconds
+            $pmin = ($edate - $sdate) / 60;
+            $premin = explode('.', $pmin);
+            
+            $presec = $pmin-$premin[0];
+            $sec = $presec*60;
+            
+//          $timeshift = $premin[0].' min '.round($sec,0).' sec ';
+            $timeshift = $premin[0].' min ';
+        }
+        elseif ($time>=3600 && $time<=86399)
+        {
+            // Hours + Minutes
+            $phour = ($edate - $sdate) / 3600;
+            $prehour = explode('.',$phour);
+            
+            $premin = $phour-$prehour[0];
+            $min = explode('.',$premin*60);
+            
+            $presec = '0.'.$min[1];
+            $sec = $presec*60;
+
+//          $timeshift = $prehour[0].' hrs '.$min[0].' min '.round($sec,0).' sec ';
+            $timeshift = $prehour[0].' hrs ';
+        }
+        elseif ($time>=86400)
+        {
+            // Days + Hours + Minutes
+            $pday = ($edate - $sdate) / 86400;
+            $preday = explode('.',$pday);
+
+            $phour = $pday-$preday[0];
+            $prehour = explode('.',$phour*24); 
+
+            $premin = ($phour*24)-$prehour[0];
+            $min = explode('.',$premin*60);
+            
+            $presec = '0.';
+            
+            if (isset($min[1]))
+            {
+                $presec .= $min[1];
+            }
+            
+            $sec = $presec*60;
+            
+//          $timeshift = $preday[0].' days '.$prehour[0].' hrs '.$min[0].' min '.round($sec,0).' sec ';
+            $timeshift = $preday[0].' days ';
+        }
+        
+        return $timeshift;
+	}   
+
+	public function mondayTimestamp($numMondaysBack = 1)
+	{
+		$now = time();
+		
+		// check if today is Monday
+		if (1 == date('N', $now))
+		{
+			if (1 == $numMondaysBack)
+			{
+				$mondayTimestamp = $now;
+			}
+			else
+			{
+				$mondayTimestamp = strtotime('-' . $numMondaysBack . ' Monday', $now);
+			}
+		}
+		else
+		{
+			$mondayTimestamp = strtotime('Monday', $now);
+			
+			// check if it is for upcoming monday
+			if ($now < $mondayTimestamp)
+			{
+				$mondayTimestamp = strtotime('-' . $numMondaysBack . ' Monday', $now);
+			}
+		}
+		
+		return $mondayTimestamp;
+	}
+		
+	public function mondayDateString($numMondaysBack = 1)
+	{		
+		$mondayDateString = date('Y-m-d', $this->mondayTimestamp($numMondaysBack));
+		
+		return $mondayDateString;
+	}
 }
 
 ?>
